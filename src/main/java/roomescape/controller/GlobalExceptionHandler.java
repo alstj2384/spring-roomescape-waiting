@@ -1,5 +1,6 @@
 package roomescape.controller;
 
+import common.exception.ErrorCode;
 import common.exception.ErrorResponse;
 import common.exception.RoomEscapeException;
 import lombok.extern.slf4j.Slf4j;
@@ -21,8 +22,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RoomEscapeException.class)
     public ResponseEntity<ErrorResponse> roomEscapeExceptionHandle(RoomEscapeException e) {
         log.info("도메인 관련 오류가 발생했습니다.", e);
-        return ResponseEntity.status(e.getErrorCode().getHttpStatus())
+        return ResponseEntity.status(mapHttpStatus(e.getErrorCode()))
                 .body(ErrorResponse.create(e.getMessage()));
+    }
+
+    private HttpStatus mapHttpStatus(ErrorCode errorCode) {
+        return switch (errorCode) {
+            case INVALID_NAME_LENGTH, INVALID_THEME_NAME_LENGTH, INVALID_THUMBNAIL_URL -> HttpStatus.BAD_REQUEST;
+            case THEME_NOT_FOUND, RESERVATION_NOT_FOUND, RESERVATION_TIME_NOT_FOUND, SLOT_NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case DUPLICATE_RESERVATION, RESERVATION_TIME_IN_USE, THEME_IN_USE -> HttpStatus.CONFLICT;
+            case PAST_DATE_NOT_ALLOWED, PAST_RESERVATION_NOT_ALLOWED -> HttpStatus.UNPROCESSABLE_ENTITY;
+            case INVALID_RANK_VALUE -> HttpStatus.INTERNAL_SERVER_ERROR;
+        };
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
